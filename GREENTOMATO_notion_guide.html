@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude로 카드뉴스 쉽게 만들기 — GREENTOMATO</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #efede9;
+    --text: #1a1a1a;
+    --text2: #6b6b6b;
+    --text3: #999;
+    --border: rgba(0,0,0,0.08);
+    --yellow: #fbbf24;
+    --yellow-bg: #fffbeb;
+    --yellow-border: rgba(251,191,36,0.3);
+    --green: #34d399;
+    --green-bg: #f0fdf4;
+    --green-border: rgba(52,211,153,0.3);
+    --purple: #6366f1;
+    --purple-bg: #eef2ff;
+    --purple-border: rgba(99,102,241,0.25);
+    --pink: #f472b6;
+    --pink-bg: #fdf2f8;
+    --red: #ff3c3c;
+    --dark: #0a0a0a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Pretendard',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.7;
+  }
+
+  /* 헤더 */
+  .hero {
+    background:var(--dark);
+    padding:60px 40px 50px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before {
+    content:'';
+    position:absolute;
+    top:0;right:0;width:60%;height:100%;
+    background:radial-gradient(ellipse at 100% 0%,rgba(251,191,36,0.18) 0%,transparent 65%);
+  }
+  .hero::after {
+    content:'';
+    position:absolute;
+    bottom:0;left:0;width:50%;height:60%;
+    background:radial-gradient(ellipse at 0% 100%,rgba(52,211,153,0.1) 0%,transparent 65%);
+  }
+  .hero-inner { position:relative; max-width:780px; margin:0 auto; }
+  .hero-badge {
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.35);
+    border-radius:100px;padding:5px 16px;margin-bottom:24px;
+  }
+  .hero-badge span { font-size:12px;font-weight:700;color:#fbbf24;letter-spacing:0.08em; }
+  .hero h1 {
+    font-size:clamp(28px,5vw,48px);font-weight:800;color:#fff;
+    letter-spacing:-0.02em;line-height:1.15;margin-bottom:16px;
+  }
+  .hero h1 em { color:#fbbf24;font-style:normal; }
+  .hero p { font-size:16px;font-weight:500;color:rgba(255,255,255,0.5);line-height:1.6; }
+  .hero-meta {
+    display:flex;gap:20px;margin-top:28px;flex-wrap:wrap;
+  }
+  .hero-chip {
+    display:flex;align-items:center;gap:6px;
+    background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);
+    border-radius:8px;padding:6px 14px;
+  }
+  .hero-chip span { font-size:13px;font-weight:600;color:rgba(255,255,255,0.7); }
+
+  /* 컨텐츠 영역 */
+  .container { max-width:780px;margin:0 auto;padding:0 40px 80px; }
+
+  /* 섹션 헤더 */
+  .section { margin-top:52px; }
+  .section-label {
+    display:flex;align-items:center;gap:10px;margin-bottom:20px;
+  }
+  .section-num {
+    width:28px;height:28px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:800;flex-shrink:0;
+  }
+  .section-title { font-size:22px;font-weight:800;color:var(--text);letter-spacing:-0.01em; }
+
+  /* 툴 카드 */
+  .tool-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px; }
+  .tool-card {
+    border:1px solid var(--border);border-radius:14px;padding:18px 20px;
+    background:var(--bg);transition:box-shadow 0.15s;
+  }
+  .tool-card:hover { box-shadow:0 4px 20px rgba(0,0,0,0.07); }
+  .tool-icon {
+    width:40px;height:40px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;margin-bottom:12px;
+  }
+  .tool-name { font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px; }
+  .tool-role { font-size:12px;font-weight:600;color:var(--text3);margin-bottom:8px;letter-spacing:0.04em; }
+  .tool-desc { font-size:13px;font-weight:500;color:var(--text2);line-height:1.55; }
+  .tool-badge {
+    display:inline-block;margin-top:10px;
+    font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;
+  }
+
+  /* 진행 순서 */
+  .step-list { display:flex;flex-direction:column;gap:0; }
+  .step-item {
+    display:flex;gap:16px;align-items:flex-start;
+    padding:18px 0;border-bottom:1px solid var(--border);
+  }
+  .step-item:last-child { border-bottom:none; }
+  .step-circle {
+    width:36px;height:36px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:800;flex-shrink:0;margin-top:2px;
+  }
+  .step-content { flex:1; }
+  .step-title { font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px; }
+  .step-desc { font-size:13px;font-weight:500;color:var(--text2);line-height:1.6; }
+  .step-tool {
+    display:inline-flex;align-items:center;gap:5px;
+    margin-top:8px;font-size:12px;font-weight:700;
+    padding:3px 12px;border-radius:20px;
+  }
+
+  /* 프롬프트 카드 */
+  .prompt-grid { display:flex;flex-direction:column;gap:14px; }
+  .prompt-card {
+    border:1px solid var(--border);border-radius:14px;overflow:hidden;
+    background:var(--bg);
+  }
+  .prompt-header {
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 18px;background:var(--bg2);border-bottom:1px solid var(--border);
+  }
+  .prompt-title { font-size:13px;font-weight:800;color:var(--text); }
+  .prompt-tag { font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px; }
+  .prompt-body {
+    padding:16px 18px;background:var(--dark);
+    font-family:'Pretendard',sans-serif;font-size:13px;font-weight:500;
+    color:rgba(255,255,255,0.8);line-height:1.75;
+    position:relative;
+  }
+  .prompt-highlight { color:#fbbf24; }
+  .copy-btn {
+    position:absolute;top:12px;right:14px;
+    font-family:'Pretendard',sans-serif;font-size:11px;font-weight:700;
+    padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.15);
+    background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);cursor:pointer;
+    transition:all 0.15s;
+  }
+  .copy-btn:hover { background:rgba(255,255,255,0.14);color:#fff; }
+  .copy-btn.copied { background:#34d399;color:#fff;border-color:#34d399; }
+
+  /* 체크리스트 */
+  .checklist { display:flex;flex-direction:column;gap:8px; }
+  .check-item {
+    display:flex;align-items:flex-start;gap:12px;
+    padding:14px 16px;background:var(--bg2);border-radius:12px;
+    border:1px solid var(--border);cursor:pointer;
+    transition:background 0.1s;user-select:none;
+  }
+  .check-item:hover { background:var(--bg3); }
+  .check-item.done { background:var(--green-bg);border-color:var(--green-border); }
+  .check-box {
+    width:20px;height:20px;border-radius:6px;border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;margin-top:1px;transition:all 0.15s;background:#fff;
+  }
+  .check-item.done .check-box { background:#34d399;border-color:#34d399; }
+  .check-tick { display:none;font-size:11px;color:#fff;font-weight:800; }
+  .check-item.done .check-tick { display:block; }
+  .check-text { font-size:14px;font-weight:600;color:var(--text);line-height:1.5; }
+  .check-item.done .check-text { color:#059669;text-decoration:line-through; }
+  .check-sub { font-size:12px;font-weight:500;color:var(--text3);margin-top:2px; }
+  .check-item.done .check-sub { color:#6ee7b7; }
+  .check-group-title {
+    font-size:12px;font-weight:700;color:var(--text3);
+    letter-spacing:0.08em;text-transform:uppercase;
+    margin-top:20px;margin-bottom:8px;padding-left:4px;
+  }
+  .check-group-title:first-child { margin-top:0; }
+  .progress-bar-wrap {
+    background:var(--bg3);border-radius:100px;height:6px;
+    margin-bottom:20px;overflow:hidden;
+  }
+  .progress-bar { height:100%;background:#34d399;border-radius:100px;transition:width 0.3s; }
+  .progress-text { font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px; }
+
+  /* 꿀팁 */
+  .tip-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px; }
+  .tip-card {
+    border-radius:14px;padding:18px 20px;
+    border:1px solid transparent;
+  }
+  .tip-icon { font-size:24px;margin-bottom:10px; }
+  .tip-title { font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px; }
+  .tip-desc { font-size:13px;font-weight:500;line-height:1.6; }
+
+  /* 푸터 */
+  .footer {
+    background:var(--dark);padding:36px 40px;text-align:center;
+    margin-top:60px;
+  }
+  .footer p { font-size:14px;font-weight:600;color:rgba(255,255,255,0.4); }
+  .footer strong { color:#fbbf24; }
+
+  /* 구분선 */
+  .divider { height:1px;background:var(--border);margin:8px 0; }
+
+  /* 반응형 */
+  @media(max-width:600px) {
+    .hero { padding:40px 24px 36px; }
+    .container { padding:0 24px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span>GREENTOMATO · 콘텐츠 제작 가이드</span>
+    </div>
+    <h1>Claude로 카드뉴스<br><em>쉽게 만들기</em></h1>
+    <p>사용 툴 · 진행 순서 · 프롬프트 모음 · 체크리스트까지<br>이 페이지 하나로 누구든 바로 시작할 수 있어요</p>
+    <div class="hero-meta">
+      <div class="hero-chip"><span>🛠 사용 툴 4가지</span></div>
+      <div class="hero-chip"><span>📋 진행 순서 5단계</span></div>
+      <div class="hero-chip"><span>💬 프롬프트 7종</span></div>
+      <div class="hero-chip"><span>✅ 체크리스트 15개</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 섹션 1: 사용 툴 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-num" style="background:#fffbeb;color:#92400e;">🛠</div>
+      <span class="section-title">사용 툴</span>
+    </div>
+    <div class="tool-grid">
+      <div class="tool-card">
+        <div class="tool-icon" style="background:#fffbeb;">🤖</div>
+        <div class="tool-name">Claude</div>
+        <div class="tool-role">글쓰기 AI</div>
+        <div class="tool-desc">주제 아이디어 · 슬라이드 문구 초안 · 게시물 설명 · 해시태그 작성</div>
+        <div class="tool-badge" style="background:#fffbeb;color:#92400e;">무료 사용 가능</div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon" style="background:#eef2ff;">🎨</div>
+        <div class="tool-name">Canva</div>
+        <div class="tool-role">디자인 툴</div>
+        <div class="tool-desc">1080×1350 템플릿 · Magic Design · PNG 다운로드 · 예약 발행</div>
+        <div class="tool-badge" style="background:#eef2ff;color:#4338ca;">무료 플랜 충분</div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon" style="background:#f0fdf4;">✨</div>
+        <div class="tool-name">Midjourney</div>
+        <div class="tool-role">이미지 생성 AI</div>
+        <div class="tool-desc">고퀄리티 배경 이미지 · 일러스트 생성 · 텍스트로 원하는 이미지 제작</div>
+        <div class="tool-badge" style="background:#f0fdf4;color:#059669;">선택 사항</div>
+      </div>
+      <div class="tool-card">
+        <div class="tool-icon" style="background:#fdf2f8;">🔥</div>
+        <div class="tool-name">Adobe Firefly</div>
+        <div class="tool-role">이미지 생성 AI</div>
+        <div class="tool-desc">저작권 걱정 없는 이미지 · 상업적 사용 가능 · Adobe 계정으로 무료</div>
+        <div class="tool-badge" style="background:#fdf2f8;color:#9d174d;">저작권 안전</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 2: 진행 순서 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-num" style="background:#eef2ff;color:#4338ca;">📋</div>
+      <span class="section-title">진행 순서 5단계</span>
+    </div>
+    <div class="step-list">
+      <div class="step-item">
+        <div class="step-circle" style="background:#fffbeb;color:#92400e;">1</div>
+        <div class="step-content">
+          <div class="step-title">주제 & 아이디어 정하기</div>
+          <div class="step-desc">Claude에게 내 분야 카드뉴스 주제 30개를 요청합니다. 그 중 반응이 좋을 것 같은 주제 하나를 고르세요.</div>
+          <div class="step-tool" style="background:#fffbeb;color:#92400e;">🤖 Claude 사용</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-circle" style="background:#eef2ff;color:#4338ca;">2</div>
+        <div class="step-content">
+          <div class="step-title">슬라이드 문구 초안 작성</div>
+          <div class="step-desc">선택한 주제로 Claude에게 슬라이드 5~6장 분량의 문구를 요청합니다. 제목 1줄 + 설명 2줄 구성으로 요청하면 바로 쓸 수 있는 형태로 나옵니다.</div>
+          <div class="step-tool" style="background:#fffbeb;color:#92400e;">🤖 Claude 사용</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-circle" style="background:#f0fdf4;color:#059669;">3</div>
+        <div class="step-content">
+          <div class="step-title">Canva에서 디자인</div>
+          <div class="step-desc">Canva → 새 디자인 → 1080×1350px 설정 후 문구를 붙여넣고 색상·폰트를 적용합니다. Pretendard ExtraBold(제목) + SemiBold(본문)를 추천합니다.</div>
+          <div class="step-tool" style="background:#eef2ff;color:#4338ca;">🎨 Canva 사용</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-circle" style="background:#fffbeb;color:#92400e;">4</div>
+        <div class="step-content">
+          <div class="step-title">게시물 설명 & 해시태그 작성</div>
+          <div class="step-desc">Claude에게 완성된 카드뉴스 주제를 알려주고 인스타그램 게시물 설명과 해시태그를 요청합니다. 정보형 / 공감형 2가지 버전을 받아서 선택하세요.</div>
+          <div class="step-tool" style="background:#fffbeb;color:#92400e;">🤖 Claude 사용</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-circle" style="background:#fdf2f8;color:#9d174d;">5</div>
+        <div class="step-content">
+          <div class="step-title">PNG 다운로드 & 인스타 업로드</div>
+          <div class="step-desc">Canva → 다운로드 → PNG → 인스타그램에 순서대로 6장 업로드. 최적 업로드 시간대는 오전 7~9시 또는 저녁 7~9시입니다.</div>
+          <div class="step-tool" style="background:#f0fdf4;color:#059669;">📱 인스타그램 업로드</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 섹션 3: 프롬프트 모음 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-num" style="background:#fffbeb;color:#92400e;">💬</div>
+      <span class="section-title">프롬프트 모음</span>
+    </div>
+    <div class="prompt-grid">
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-title">① 주제 아이디어 뽑기</span>
+          <span class="prompt-tag" style="background:#fffbeb;color:#92400e;">기획</span>
+        </div>
+        <div class="prompt-body">
+          <button class="copy-btn" onclick="copyPrompt(this, 0)">복사</button>
+[내 분야/업종]을 운영하는 인스타그램 계정을 위한<br>
+카드뉴스 주제 <span class="prompt-highlight">30개</span>를 뽑아줘.<br>
+저장율이 높고 공유하고 싶어지는 주제 위주로,<br>
+각 주제는 한 줄로 간결하게 작성해줘.
+        </div>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-title">② 슬라이드 문구 작성</span>
+          <span class="prompt-tag" style="background:#eef2ff;color:#4338ca;">제작</span>
+        </div>
+        <div class="prompt-body">
+          <button class="copy-btn" onclick="copyPrompt(this, 1)">복사</button>
+주제: <span class="prompt-highlight">[주제 입력]</span><br>
+위 주제로 인스타그램 카드뉴스 <span class="prompt-highlight">6장</span> 분량의 문구를 써줘.<br>
+각 슬라이드는 아래 형식으로:<br>
+- 제목: 1줄 (10자 이내)<br>
+- 부제목: 1줄<br>
+- 본문: 2~3줄<br>
+마지막 장은 저장 유도 CTA로 마무리해줘.
+        </div>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-title">③ 카드뉴스 디자인 시각화</span>
+          <span class="prompt-tag" style="background:#f0fdf4;color:#059669;">디자인</span>
+        </div>
+        <div class="prompt-body">
+          <button class="copy-btn" onclick="copyPrompt(this, 2)">복사</button>
+아래 내용으로 인스타그램 카드뉴스를 만들어줘.<br>
+- 사이즈: <span class="prompt-highlight">1080 × 1350px</span><br>
+- 폰트: Pretendard ExtraBold(제목), SemiBold(본문)<br>
+- 브랜드명: <span class="prompt-highlight">@GREENTOMATO</span><br>
+- 슬라이드 수: 6장<br>
+- 업로드 주기: 매주 월·수·금<br>
+[슬라이드 내용 붙여넣기]
+        </div>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-title">④ 게시물 설명 작성</span>
+          <span class="prompt-tag" style="background:#fdf2f8;color:#9d174d;">업로드</span>
+        </div>
+        <div class="prompt-body">
+          <button class="copy-btn" onclick="copyPrompt(this, 3)">복사</button>
+주제: <span class="prompt-highlight">[주제 입력]</span><br>
+위 카드뉴스를 인스타그램에 올릴 때 쓸<br>
+게시물 설명을 2가지 버전으로 써줘.<br>
+- 버전1: 정보 전달형 (저장 유도)<br>
+- 버전2: 공감형 (감성 + 저장 유도)<br>
+해시태그 15개도 포함해줘.
+        </div>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-title">⑤ 시리즈 콘텐츠 기획</span>
+          <span class="prompt-tag" style="background:#fffbeb;color:#92400e;">기획</span>
+        </div>
+        <div class="prompt-body">
+          <button class="copy-btn" onclick="copyPrompt(this, 4)">복사</button>
+[주제/카테고리]를 큰 테마로,<br>
+이어지는 느낌의 <span class="prompt-highlight">4부작 시리즈</span> 카드뉴스를 기획해줘.<br>
+각 편의 제목, 핵심 내용, 어떤 순서로 이어지는지<br>플로우를 설명해줘.<br>
+화~금 요일에 업로드하는 일정으로 맞춰줘.
+        </div>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-title">⑥ 콘텐츠 재활용 전략</span>
+          <span class="prompt-tag" style="background:#f0fdf4;color:#059669;">운영</span>
+        </div>
+        <div class="prompt-body">
+          <button class="copy-btn" onclick="copyPrompt(this, 5)">복사</button>
+아래 카드뉴스 내용을 기반으로<br>
+다양한 포맷으로 <span class="prompt-highlight">재활용할 수 있는 방법</span> 5가지를 알려줘.<br>
+(스토리, 릴스, 브로드캐스트, 블로그 등)<br>
+각 포맷별 핵심 수정 포인트도 함께 알려줘.<br>
+[카드뉴스 내용 붙여넣기]
+        </div>
+      </div>
+
+      <div class="prompt-card">
+        <div class="prompt-header">
+          <span class="prompt-title">⑦ 한 달 치 콘텐츠 캘린더</span>
+          <span class="prompt-tag" style="background:#eef2ff;color:#4338ca;">기획</span>
+        </div>
+        <div class="prompt-body">
+          <button class="copy-btn" onclick="copyPrompt(this, 6)">복사</button>
+[내 분야/업종] 인스타그램 계정을 위한<br>
+<span class="prompt-highlight">한 달 치 콘텐츠 캘린더</span>를 만들어줘.<br>
+- 업로드 주기: 월·수·금 (주 3회)<br>
+- 포맷: 카드뉴스 위주<br>
+- 시리즈물과 단독 게시물을 섞어서 구성<br>
+날짜별 주제와 간단한 방향성을 표로 정리해줘.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 섹션 4: 체크리스트 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-num" style="background:#f0fdf4;color:#059669;">✅</div>
+      <span class="section-title">업로드 전 체크리스트</span>
+    </div>
+
+    <div class="progress-text" id="progressText">0 / 15 완료</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progressBar" style="width:0%"></div>
+    </div>
+
+    <div class="checklist" id="checklist">
+
+      <div class="check-group-title">📝 기획 단계</div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">주제가 명확하게 하나로 좁혀져 있다</div><div class="check-sub">한 슬라이드 = 한 메시지</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">타겟 독자가 누군지 정해져 있다</div><div class="check-sub">20대 직장인, 소상공인, 육아맘 등</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">슬라이드 수가 5~7장 사이다</div><div class="check-sub">너무 많으면 끝까지 안 넘겨요</div></div>
+      </div>
+
+      <div class="check-group-title">✍️ 문구 단계</div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">표지 제목이 한눈에 읽힌다 (10자 이내)</div><div class="check-sub">스크롤 중 멈추게 만드는 첫 장</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">슬라이드당 글자 수가 50자 이하다</div><div class="check-sub">짧을수록 더 잘 읽혀요</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">마지막 장에 저장 유도 문구가 있다</div><div class="check-sub">"저장해두면 나중에 도움돼요" 류</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">브랜드명 @GREENTOMATO가 들어가 있다</div><div class="check-sub">표지 또는 마지막 장에 필수</div></div>
+      </div>
+
+      <div class="check-group-title">🎨 디자인 단계</div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">캔버스 사이즈가 1080 × 1350px다</div><div class="check-sub">인스타 세로형 최적 비율</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">사용 색상이 2~3가지 이내다</div><div class="check-sub">색이 많을수록 산만해 보여요</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">제목 폰트가 ExtraBold로 크게 설정됐다</div><div class="check-sub">Pretendard ExtraBold 권장</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">6장의 디자인 톤이 통일됐다</div><div class="check-sub">색상·폰트·여백이 일관적</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">PNG로 다운로드했다 (JPG X)</div><div class="check-sub">PNG가 텍스트 선명도 훨씬 좋아요</div></div>
+      </div>
+
+      <div class="check-group-title">📱 업로드 단계</div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">슬라이드 순서가 맞게 정렬됐다</div><div class="check-sub">표지 → 본문 → CTA 순서</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">게시물 설명에 해시태그 10~15개 포함됐다</div><div class="check-sub">관련 키워드 + 브랜드 해시태그</div></div>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this)">
+        <div class="check-box"><span class="check-tick">✓</span></div>
+        <div><div class="check-text">최적 시간대에 업로드한다</div><div class="check-sub">오전 7~9시 또는 저녁 7~9시 추천</div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 섹션 5: 꿀팁 -->
+  <div class="section">
+    <div class="section-label">
+      <div class="section-num" style="background:#fdf2f8;color:#9d174d;">💡</div>
+      <span class="section-title">알아두면 좋은 꿀팁</span>
+    </div>
+    <div class="tip-grid">
+      <div class="tip-card" style="background:#fffbeb;border-color:var(--yellow-border);">
+        <div class="tip-icon">⏱</div>
+        <div class="tip-title">주 30분으로 한 달 치 제작</div>
+        <div class="tip-desc" style="color:#92400e;">주 1회 몰아서 만들고 예약 업로드. Claude로 주제 뽑기 → 문구 작성 → Canva 디자인 → 예약</div>
+      </div>
+      <div class="tip-card" style="background:#f0fdf4;border-color:var(--green-border);">
+        <div class="tip-icon">♻️</div>
+        <div class="tip-title">1개 만들면 5개로 재활용</div>
+        <div class="tip-desc" style="color:#059669;">카드뉴스 → 스토리 5장 → 브로드캐스트 메시지 → 30초 숏폼 → 블로그 글</div>
+      </div>
+      <div class="tip-card" style="background:#eef2ff;border-color:var(--purple-border);">
+        <div class="tip-icon">💾</div>
+        <div class="tip-title">저장율이 핵심 지표</div>
+        <div class="tip-desc" style="color:#4338ca;">좋아요보다 저장이 중요. "나중에 다시 보고 싶다"는 마음이 드는 유용한 정보 위주로</div>
+      </div>
+      <div class="tip-card" style="background:#fdf2f8;border-color:rgba(244,114,182,0.25);">
+        <div class="tip-icon">🔁</div>
+        <div class="tip-title">시리즈물로 기대감 만들기</div>
+        <div class="tip-desc" style="color:#9d174d;">4부작 시리즈 기획 시 "다음 편"을 기다리는 팔로워가 생겨요. 저장 + 팔로우 동시 유도</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 푸터 -->
+<div class="footer">
+  <p>Made with ❤️ by <strong>@GREENTOMATO</strong> · 매주 월·수·금 비즈니스 팁 업로드</p>
+  <p style="margin-top:8px;font-size:12px;opacity:0.5;">이 가이드를 저장해두고 카드뉴스 만들 때마다 활용하세요</p>
+</div>
+
+<script>
+  const prompts = [
+    `[내 분야/업종]을 운영하는 인스타그램 계정을 위한\n카드뉴스 주제 30개를 뽑아줘.\n저장율이 높고 공유하고 싶어지는 주제 위주로,\n각 주제는 한 줄로 간결하게 작성해줘.`,
+    `주제: [주제 입력]\n위 주제로 인스타그램 카드뉴스 6장 분량의 문구를 써줘.\n각 슬라이드는 아래 형식으로:\n- 제목: 1줄 (10자 이내)\n- 부제목: 1줄\n- 본문: 2~3줄\n마지막 장은 저장 유도 CTA로 마무리해줘.`,
+    `아래 내용으로 인스타그램 카드뉴스를 만들어줘.\n- 사이즈: 1080 × 1350px\n- 폰트: Pretendard ExtraBold(제목), SemiBold(본문)\n- 브랜드명: @GREENTOMATO\n- 슬라이드 수: 6장\n- 업로드 주기: 매주 월·수·금\n[슬라이드 내용 붙여넣기]`,
+    `주제: [주제 입력]\n위 카드뉴스를 인스타그램에 올릴 때 쓸\n게시물 설명을 2가지 버전으로 써줘.\n- 버전1: 정보 전달형 (저장 유도)\n- 버전2: 공감형 (감성 + 저장 유도)\n해시태그 15개도 포함해줘.`,
+    `[내 분야/업종]을 큰 테마로,\n이어지는 느낌의 4부작 시리즈 카드뉴스를 기획해줘.\n각 편의 제목, 핵심 내용, 어떤 순서로 이어지는지\n플로우를 설명해줘.\n화~금 요일에 업로드하는 일정으로 맞춰줘.`,
+    `아래 카드뉴스 내용을 기반으로\n다양한 포맷으로 재활용할 수 있는 방법 5가지를 알려줘.\n(스토리, 릴스, 브로드캐스트, 블로그 등)\n각 포맷별 핵심 수정 포인트도 함께 알려줘.\n[카드뉴스 내용 붙여넣기]`,
+    `[내 분야/업종] 인스타그램 계정을 위한\n한 달 치 콘텐츠 캘린더를 만들어줘.\n- 업로드 주기: 월·수·금 (주 3회)\n- 포맷: 카드뉴스 위주\n- 시리즈물과 단독 게시물을 섞어서 구성\n날짜별 주제와 간단한 방향성을 표로 정리해줘.`
+  ];
+
+  function copyPrompt(btn, idx) {
+    navigator.clipboard.writeText(prompts[idx]).then(() => {
+      btn.textContent = '복사됨!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 1500);
+    });
+  }
+
+  function toggleCheck(item) {
+    item.classList.toggle('done');
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const total = document.querySelectorAll('.check-item').length;
+    const done = document.querySelectorAll('.check-item.done').length;
+    document.getElementById('progressText').textContent = done + ' / ' + total + ' 완료';
+    document.getElementById('progressBar').style.width = Math.round(done / total * 100) + '%';
+  }
+</script>
+</body>
+</html>
